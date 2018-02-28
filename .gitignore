@@ -3,3 +3,4 @@ build/
 target/
 *.log
 /.gradle/
+/scap2rdf/

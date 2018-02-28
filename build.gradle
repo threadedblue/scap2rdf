@@ -1,10 +1,13 @@
+apply plugin: 'application'
 apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'maven'
 
+applicationName = 'scap2rdf'
 sourceCompatibility = 1.8
+mainClassName = 'scap2rdf.SCAP2RDFDriver'
 group = 'iox.emf.rdf'
-version = '0.0.1'
+version = '0.0.2'
 
 configure(install.repositories.mavenInstaller) {
     pom.project {
@@ -15,21 +18,11 @@ configure(install.repositories.mavenInstaller) {
     }
 }
 
-task(runSimple, dependsOn: 'classes', type: JavaExec) {
-	main = 'emfProfile2Profile.EMF2Triple'
-	classpath = sourceSets.main.runtimeClasspath
-}
-
-jar {
-    manifest {
-        attributes 'Implementation-Title': 'EMF 2 RDF 3',
-                   'Implementation-Version': version
-    }
-}
+def jarFile = buildDir.name + "/libs/" + applicationName + "-" + version + ".jar"
 
 repositories {
-    maven {url 'file://' + new File(System.getProperty('user.home'), '.m2/repository').absolutePath;}
     jcenter()
+    maven {url 'file://' + new File(System.getProperty('user.home'), '.m2/repository').absolutePath;}
 }
     
 sourceSets {
@@ -48,9 +41,14 @@ sourceSets {
 
 dependencies {
 
-    compile project (":arf2emf")
-    compile project (":emf2rdf")
-
+    compile "iox.emf:arf2emf:0.0.1"
+    compile "iox.emf:emf2rdf:0.0.1"
+ 
+    // MR
+    compile "org.apache.hadoop:hadoop-client:${hadver}"
+    compile "args4j:args4j:2.33"
+    
+    //EMF
     compile "org.eclipse.emf:org.eclipse.emf.common:${emfver}"
     compile "org.eclipse.emf:org.eclipse.emf.ecore:${emfver}"
     compile "org.eclipse.emf:org.eclipse.emf.ecore.xmi:${emfver}"
@@ -59,8 +57,11 @@ dependencies {
 	
 	// RDF4J
     compile "org.eclipse.rdf4j:rdf4j-runtime:${rdfver}"     
+    
+    // xtext
     compile "org.eclipse.xtext:org.eclipse.xtext:${xtextver}"
-	compile "org.eclipse.xtext:org.eclipse.xtext.xbase:${xtextver}"
+    compile "org.eclipse.xtext:org.eclipse.xtext.xbase:${xtextver}"
+    compile "org.eclipse.platform:org.eclipse.osgi:3.11.2"
 
 	// Logging
     compile "org.apache.logging.log4j:log4j-slf4j-impl:${logver}" 
@@ -95,4 +96,36 @@ uploadArchives {
            dirs 'repos'
        }
     }
+}
+
+task assemblex {
+    dependsOn jar
+    inputs.file jarFile
+    outputs.dir applicationName
+   doLast{ 
+      copy {
+            from "${buildDir}/libs"
+            into "${applicationName}"
+            fileMode = 0777
+        }
+       copy {
+            from "conf/"
+            into "${applicationName}/conf"
+        }
+       copy {
+            from configurations.runtime
+            into "$applicationName/lib"
+        }
+   }
+}
+
+jar {
+    // Keep jar clean:
+    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/*.MF'
+    manifest {
+        attributes ('Implementation-Title' : 'SCAP 2 RDF',
+                   'Implementation-Version': version,
+                   'Main-Class': mainClassName,
+                   'Class-Path': ' lib/' + configurations.runtime.collect { it.getName() }.join(' lib/'))
+        }
 }

@@ -16,4 +16,3 @@ include 'services:webservice'
 */
 
 rootProject.name = 'scap2rdf'
-includeFlat 'arf2emf', 'emf2rdf'
