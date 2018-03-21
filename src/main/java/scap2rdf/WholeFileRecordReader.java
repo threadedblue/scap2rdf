@@ -13,8 +13,13 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class WholeFileRecordReader extends RecordReader<Text, BytesWritable> {
+	
+	private static final Logger log = LoggerFactory.getLogger(WholeFileRecordReader.class);
+
 	private FileSplit fileSplit;
 	private Configuration conf;
 	private byte[] value;
@@ -23,22 +28,24 @@ class WholeFileRecordReader extends RecordReader<Text, BytesWritable> {
 	public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
 		this.fileSplit = (FileSplit) split;
 		this.conf = context.getConfiguration();
-		System.out.println("initialize in whole record reader");
+		log.trace("initialize in whole record reader");
 	}
 
 	@Override
 	public boolean nextKeyValue() throws IOException, InterruptedException {
 		if (!processed) {
-			System.out.println("next key value");
+			log.trace("next key value");
 			byte[] contents = new byte[(int) fileSplit.getLength()];
 			Path file = fileSplit.getPath();
 			FileSystem fs = file.getFileSystem(conf);
 			FSDataInputStream in = null;
-			// FileInputStream in = null;
 			try {
 				in = fs.open(file);
+				log.trace("Read==>");
 				IOUtils.readFully(in, contents, 0, contents.length);
+				log.trace("<==Read");
 				value = contents;
+//				log.trace("value=" + new String(value));
 			} finally {
 				IOUtils.closeStream(in);
 			}

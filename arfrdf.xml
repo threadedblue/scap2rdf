@@ -45,3 +45,4 @@
 <file:///arf.rdf#/> <http://scap.nist.gov/schema/asset-reporting-format/1.1#//AssetReportCollectionType/reportRequests> <file:///arf.rdf#//@reportRequests> .
 <file:///arf.rdf#/> <http://scap.nist.gov/schema/asset-reporting-format/1.1#//AssetReportCollectionType/assets> <file:///arf.rdf#//@assets> .
 <file:///arf.rdf#/> <http://scap.nist.gov/schema/asset-reporting-format/1.1#//AssetReportCollectionType/reports> <file:///arf.rdf#//@reports> .
+

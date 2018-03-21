@@ -26,17 +26,16 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
-import org.apache.logging.log4j.core.tools.picocli.CommandLine.Option;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,13 +45,13 @@ public class SCAP2RDFDriver implements Runnable {
 
 	private static final Logger log = LoggerFactory.getLogger(SCAP2RDFDriver.class);
 
-	@Option(names = "-i --input", required = false)
+	@Option(name = "-i", aliases = "--input", required = false, usage = "")
 	private String input = "";
 
-	@Option(names = "-o --output", required = false)
+	@Option(name = "-o", aliases = "--output", required = false, usage = "")
 	private String output = "";
 
-	@Option(names = "-ow --overwrite", required = false)
+	@Option(name = "-ow", aliases = "--write", required = false, usage = "")
 	private boolean overwrite;
 
 	public SCAP2RDFDriver(String[] args) throws CmdLineException {
@@ -70,22 +69,23 @@ public class SCAP2RDFDriver implements Runnable {
 	public void run() {
 
 		Configuration conf = new Configuration();
-		final String HADOOP_HOME = "/usr/local/hadoop/etc/hadoop";
-		conf.addResource(new Path(HADOOP_HOME + "/core-site.xml"));
-		conf.addResource(new Path(HADOOP_HOME + "/hdfs-site.xml"));
-
-		String scenarioText = null;
+		final String HADOOP_CONF = "/usr/local/hadoop/etc/hadoop";
+		conf.addResource(new Path(HADOOP_CONF + "/core-site.xml"));
+		conf.addResource(new Path(HADOOP_CONF + "/hdfs-site.xml"));
+		conf.set("xmlinput.start", "");
+		conf.set("xmlinput.end", "");
+		conf.set("io.serializations",
+				"org.apache.hadoop.io.serializer.JavaSerialization,org.apache.hadoop.io.serializer.WritableSerialization");
 
 		try {
 			Job job = Job.getInstance();
 			job.setJarByClass(SCAP2RDFDriver.class);
-			FileSystem fs = FileSystem.get(new java.net.URI("hdfs://localhost:9000/"), conf);
-			FileStatus[] ffss = fs.listStatus(new Path("hdfs://libs/scap2rdf/lib"));
+			FileSystem fs = FileSystem.get(new java.net.URI("hdfs://haz00.us-east4-a.c.bold-rain-193317.internal:9000"),
+					conf);
+			FileStatus[] ffss = fs.listStatus(new Path("/libs/scap2rdf/lib"));
 			for (FileStatus fs1 : ffss) {
 				job.addArchiveToClassPath(fs1.getPath());
 			}
-			job.addCacheFile(new Path("hdfs://libs/scap2rdf/lib/arf2emf-0.0.1.jar").toUri());
-			log.debug("scenarioText=" + scenarioText);
 			Path pathRoot = new Path(fs.getUri());
 
 			Path pathInput = new Path(pathRoot, input);
@@ -96,20 +96,26 @@ public class SCAP2RDFDriver implements Runnable {
 			if (fs.exists(pathOutput)) {
 				fs.delete(pathOutput, true);
 			}
-			job.setJarByClass(this.getClass());
 
 			job.setMapperClass(SCAP2RDFMapper.class);
-			job.setMapOutputKeyClass(Text.class);
+			job.setMapOutputKeyClass(NullWritable.class);
 			job.setMapOutputValueClass(Text.class);
 
-			FileInputFormat.addInputPath(job, pathInput);
+			job.setReducerClass(SCAP2RDFReducer.class);
+			job.setOutputKeyClass(NullWritable.class);
+			job.setOutputValueClass(Text.class);
+
+			FileInputFormat.setInputPaths(job, pathInput);
 			FileOutputFormat.setOutputPath(job, pathOutput);
 
-			job.setInputFormatClass(WholeFileInputFormat.class);
-			job.setOutputFormatClass(TextOutputFormat.class);
+			// job.setInputFormatClass(WholeFileInputFormat.class);
+			job.setInputFormatClass(XmlInputFormat.class);
+			// job.setOutputFormatClass(TextOutputFormat.class);
 
-			job.getConfiguration().set("mapred.child.java.opts", "-Xmx512m");
+			job.getConfiguration().set("mapred.child.java.opts", "-Xmx2048m");
+			log.debug("waitForCompletion==>");
 			job.waitForCompletion(true);
+			log.debug("<==waitForCompletion");
 		} catch (IOException e) {
 			log.error("", e.fillInStackTrace());
 		} catch (NullPointerException e) {
@@ -129,36 +135,6 @@ public class SCAP2RDFDriver implements Runnable {
 			app.run();
 		} catch (CmdLineException e) {
 			log.error("", e.fillInStackTrace());
-		}
-	}
-
-	static class SCAP2RDFMapper extends Mapper<LongWritable, Text, NullWritable, Text> {
-		Text textOut = new Text();
-
-		@Override
-		protected void map(LongWritable key, Text value, Context ctx) throws IOException, InterruptedException {
-			try {
-//				StringReader reader = new StringReader(value.toString());
-//				EObject eObject = Deserialize.it(reader, "http://arf.xml");
-//
-//				Repository repo = new SailRepository(new MemoryStore());
-//				repo.initialize();
-//
-//				ResourceSet resourceSet = Registrar.getResourceSet();
-//				resourceSet.getURIConverter().getURIHandlers().add(0, new RepositoryHandler(repo));
-//				Resource resource = resourceSet.createResource(URI.createURI("file:///arf.rdf"));
-//				DocumentRoot root = (DocumentRoot) eObject;
-//				AssetReportCollectionType coll = root.getAssetReportCollection();
-//				resource.getContents().add(coll);
-//				ByteArrayOutputStream stream = new ByteArrayOutputStream();
-//				resource.save(stream, Collections.EMPTY_MAP);
-//				resource.getContents().clear();
-//				textOut.set(stream.toString());
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-
-			ctx.write(NullWritable.get(), value);
 		}
 	}
 }
