@@ -5,8 +5,8 @@ apply plugin: 'maven'
 
 applicationName = 'scap2rdf'
 sourceCompatibility = 1.8
-mainClassName = 'scap2rdf.SCAP2RDFDriver'
-group = 'iox.emf.rdf'
+mainClassName = 'iox.scap2rdf.SCAP2RDFDriver'
+group = 'iox.rdf'
 version = '0.0.2'
 
 configure(install.repositories.mavenInstaller) {
@@ -23,6 +23,11 @@ def jarFile = buildDir.name + "/libs/" + applicationName + "-" + version + ".jar
 repositories {
     jcenter()
     maven {url 'file://' + new File(System.getProperty('user.home'), '.m2/repository').absolutePath;}
+}
+
+clean {
+    delete "${buildDir}" 
+    delete "${applicationName}" 
 }
     
 sourceSets {
@@ -42,7 +47,8 @@ sourceSets {
 dependencies {
 
     compile "iox.emf:arf2emf:0.0.1"
-    compile "iox.emf:emf2rdf:0.0.1"
+//    compile "iox.emf:emf2rdf:0.0.1"
+    compile project(':emf2rdf')
  
     // MR
     compile "org.apache.hadoop:hadoop-client:${hadver}"
