@@ -23,7 +23,6 @@ public class XmlInputFormat extends TextInputFormat {
 	public static final String START_TAG_KEY = "<arf:asset-report-collection xmlns:arf=\"http://scap.nist.gov/schema/asset-reporting-format/1.1\" xmlns:core=\"http://scap.nist.gov/schema/reporting-core/1.1\" xmlns:ai=\"http://scap.nist.gov/schema/asset-identification/1.1\">";
 	public static final String END_TAG_KEY = "</arf:asset-report-collection>";
 
-	/* Krishna - Creating XMLInputformat Class for reading XML File */
 	@Override
 	public RecordReader<LongWritable, Text> createRecordReader(InputSplit split, TaskAttemptContext context) {
 		log.trace("createRecordReader");

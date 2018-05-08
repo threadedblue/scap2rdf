@@ -8,6 +8,7 @@ import java.util.Collections;
 
 import org.apache.commons.io.input.ReaderInputStream;
 import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -29,14 +30,14 @@ import iox.emf2rdf.resource.RDFResourceFactory;
 import iox.emf2rdf.resource.TTLResourceFactory;
 import iox.sds4emf.Registrar;
 
-public class SCAP2RDFMapper extends Mapper<Text, BytesWritable, NullWritable, Text> {
+public class SCAP2RDFMapper extends Mapper<LongWritable, Text, NullWritable, Text> {
 
 	private static final Logger log = LoggerFactory.getLogger(SCAP2RDFMapper.class);
 
 	Text textOut = new Text();
 
 	@Override
-	protected void setup(Mapper<Text, BytesWritable, NullWritable, Text>.Context context)
+	protected void setup(Mapper<LongWritable, Text, NullWritable, Text>.Context context)
 			throws IOException, InterruptedException {
 		super.setup(context);
 		String outputFormat = context.getConfiguration().get("RDFFromat");
@@ -70,32 +71,37 @@ public class SCAP2RDFMapper extends Mapper<Text, BytesWritable, NullWritable, Te
 	}
 
 	@Override
-	protected void map(Text key, BytesWritable value, Context ctx) throws IOException, InterruptedException {
+	protected void map(LongWritable key, Text value, Context ctx) throws IOException, InterruptedException {
 		log.debug("map==>");
 		String textIn = new String(value.getBytes());
 		log.debug("key=" + key + " value=" + textIn.substring(0, 20));
+		URI uri = null;
+		Charset charset = Charset.forName("US-ASCII");
+		Resource resource = null;
+		EObject eObject = null;
 		try {
 			StringReader reader = new StringReader(textIn);
 
-			URI uri = URI.createURI(key.toString());
-			Charset charset = Charset.forName("US-ASCII");
-			Resource resource = Registrar.getResourceSet().createResource(uri);
+			uri = URI.createURI("file:///arf.rdf");
+			resource = Registrar.getResourceSet().createResource(uri);
 			resource.load(new ReaderInputStream(reader, charset), Collections.EMPTY_MAP);
-			log.trace("0 resource=" + resource);
-			EObject eObject = (EObject) resource.getContents().get(0);
-			log.trace("1 eObject=" + eObject);
+			log.debug("0 resource=" + resource);
+			eObject = (EObject) resource.getContents().get(0);
+			log.debug("1 eObject=" + eObject);
+		} catch (NullPointerException e) {
+			log.debug("uri=" + uri);
+			log.debug("resource=" + resource);
+		}
+		Repository repo = new SailRepository(new MemoryStore());
+		repo.initialize();
 
-			// EObject eObject = Deserialize.it(reader, "http://" + key.toString());
-
-			Repository repo = new SailRepository(new MemoryStore());
-			repo.initialize();
-
+		try {
 			// ResourceSet resourceSet = Registrar.getResourceSet();
 			Registrar.getResourceSet().getURIConverter().getURIHandlers().add(0, new RepositoryHandler(repo));
 			Resource resource1 = Registrar.getResourceSet().createResource(URI.createURI("file:///arf.rdf"));
-			log.trace("2 resource1=" + resource1);
+			log.debug("2 resource1=" + resource1);
 			DocumentRoot root = (DocumentRoot) eObject;
-			log.trace("3 root=" + root);
+			log.debug("3 root=" + root);
 			AssetReportCollectionType coll = root.getAssetReportCollection();
 			resource1.getContents().add(coll);
 			ByteArrayOutputStream stream = new ByteArrayOutputStream();

@@ -5,7 +5,7 @@ apply plugin: 'maven'
 
 applicationName = 'scap2rdf'
 sourceCompatibility = 1.8
-mainClassName = 'scap2rdf.SCAP2RDFDriver'
+mainClassName = 'iox.scap2rdf.SCAP2RDFDriver'
 group = 'iox.emf.rdf'
 version = '0.0.2'
 
@@ -19,6 +19,11 @@ configure(install.repositories.mavenInstaller) {
 }
 
 def jarFile = buildDir.name + "/libs/" + applicationName + "-" + version + ".jar"
+
+clean {
+    delete "${buildDir}" 
+    delete "${applicationName}" 
+}
 
 repositories {
     jcenter()

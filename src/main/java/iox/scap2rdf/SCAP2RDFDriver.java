@@ -1,5 +1,7 @@
 package iox.scap2rdf;
 
+import java.io.FileNotFoundException;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,7 +22,11 @@ package iox.scap2rdf;
  */
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.function.BiConsumer;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -39,28 +45,47 @@ import org.slf4j.LoggerFactory;
 
 import iox.emf2rdf.RDFFormat;
 
-
 public class SCAP2RDFDriver implements Runnable {
 
 	private static final Logger log = LoggerFactory.getLogger(SCAP2RDFDriver.class);
 
-	@Option(name = "-i", aliases = "--input", required = false, usage = "hdfs Path to input. file or dir")
-	private String input = "";
+	static final String PROPERTIES_FILE = "scap2rdf.properties";
+	static String HADOOP_CONF;
+	static String HDFS_FILE_SYSTEM_URL;
 
-	@Option(name = "-o", aliases = "--output", required = false, usage = "hdfs Path to output. dir only")
-	private String output = "";
+	@Option(name = "-i", aliases = "--input", required = true, usage = "hdfs Path to input. file or dir")
+	private String input;
+
+	@Option(name = "-o", aliases = "--output", required = true, usage = "hdfs Path to output. dir only")
+	private String output;
 
 	@Option(name = "-ow", aliases = "--write", required = false, usage = "Overwrite output")
 	private boolean overwrite;
 
-	public SCAP2RDFDriver(String[] args) throws CmdLineException {
+	@Option(name = "-c", aliases = "--conf", required = false, usage = "Location of hadooop config file.")
+	private boolean hdfs_conf;
+
+	@Option(name = "-f", aliases = "--fs", required = false, usage = "URL of hadoop name server.")
+	private boolean hdfs_file_system_url;
+
+	static Properties props = new Properties();
+
+	public SCAP2RDFDriver(String[] args) throws CmdLineException, FileNotFoundException {
 		super();
 		CmdLineParser CLI = new CmdLineParser(this);
 		try {
+//			InputStream is = this.getClass().getClassLoader().getResourceAsStream(PROPERTIES_FILE);
+//			props.load(is);
+//			List<String> list = Arrays.asList(args);
+//			final PropertiesConsumer _function = new PropertiesConsumer(list);
+//			props.forEach(_function);
+//			args = list.toArray(new String[0]);
 			CLI.parseArgument(args);
 		} catch (CmdLineException e) {
 			CLI.printUsage(System.out);
 			throw e;
+		} catch (IllegalStateException e) {
+			log.error("", e);
 		}
 		log.info(this.getClass().getName() + "==>");
 	}
@@ -79,9 +104,13 @@ public class SCAP2RDFDriver implements Runnable {
 		try {
 			Job job = Job.getInstance();
 			job.setJarByClass(SCAP2RDFDriver.class);
-			FileSystem fs = FileSystem.get(new java.net.URI("hdfs://haz00.us-east4-a.c.bold-rain-193317.internal:9000"),
+			FileSystem fs = FileSystem.get(new java.net.URI("hdfs://haz00:9000"),
 					conf);
-			FileStatus[] ffss = fs.listStatus(new Path("/libs/scap2rdf/lib"));
+			Path pathLibs = new Path("/libs/scap2rdf/lib");
+//			if(!fs.exists(pathLibs)) {
+//				fs.create(pathLibs);
+//			}
+			FileStatus[] ffss = fs.listStatus(pathLibs);
 			for (FileStatus fs1 : ffss) {
 				job.addArchiveToClassPath(fs1.getPath());
 			}
@@ -124,8 +153,6 @@ public class SCAP2RDFDriver implements Runnable {
 
 	private static RDFFormat rdfFormat = RDFFormat.NTRIPLES;
 
-	static Properties props = new Properties();
-
 	public static void main(String[] args) throws Exception {
 		try {
 			SCAP2RDFDriver app = new SCAP2RDFDriver(args);
@@ -134,4 +161,31 @@ public class SCAP2RDFDriver implements Runnable {
 			log.error("", e.fillInStackTrace());
 		}
 	}
+
+	String[] toArray(Properties props, String[] args) {
+		List<String> list = Arrays.asList(args);
+		for (Map.Entry<Object, Object> entry : props.entrySet()) {
+			list.add((String) entry.getKey());
+			String s = (String) entry.getValue();
+			if (s != null && s.length() > 0) {
+				list.add((String) entry.getValue());
+			}
+		}
+		return list.toArray(new String[0]);
+	}
+
+//	class PropertiesConsumer implements BiConsumer<String, String> {
+//
+//		PropertiesConsumer(List<String> list) {
+//			this.list = list;
+//		}
+//
+//		@Override
+//		public void accept(final String key, String value) {
+//			list.add(key);
+//			if (value != null) {
+//				list.add(value);
+//			}
+//		}
+//	}
 }
