@@ -45,10 +45,13 @@ public class SCAP2RDFMapper extends Mapper<Text, BytesWritable, NullWritable, Te
 				new gov.nist.scap.schema.asset.reporting.format._1.util._1ResourceFactoryImpl());
 
 		if (RDFFormat.RDFXML.name().equals(outputFormat)) {
+			log.debug("Using rdf format=" + RDFFormat.RDFXML.name());
 			Registrar.associateExtension("rdf", new RDFResourceFactory());
 		} else if (RDFFormat.TURTLE.name().equals(outputFormat)) {
+			log.debug("Using rdf format=" + RDFFormat.TURTLE.name());
 			Registrar.associateExtension("rdf", new TTLResourceFactory());
 		} else {
+			log.debug("Using rdf format=" + RDFFormat.NTRIPLES.name());
 			Registrar.associateExtension("rdf", new NTResourceFactory());
 		}
 

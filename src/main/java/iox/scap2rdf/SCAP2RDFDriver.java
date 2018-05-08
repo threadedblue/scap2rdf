@@ -78,7 +78,7 @@ public class SCAP2RDFDriver implements Runnable {
 			Job job = Job.getInstance(conf, "SCAP2RDF");
 			conf.set("RDFFormat", resolveRDFFormat(outputFormat).name());
 			job.setJarByClass(SCAP2RDFDriver.class);
-			FileSystem fs = FileSystem.get(new java.net.URI("hdfs://haz00.us-east4-a.c.bold-rain-193317.internal:9000"),
+			FileSystem fs = FileSystem.get(new java.net.URI("hdfs://haz00:9000"),
 					conf);
 			FileStatus[] ffss = fs.listStatus(new Path("/libs/scap2rdf/lib"));
 			for (FileStatus fs1 : ffss) {

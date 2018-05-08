@@ -12,10 +12,10 @@
 		</File>
 	</Appenders>
 	<Loggers>
-		<Logger name="iox.scap2rdf" level="OFF">
+		<Logger name="iox.scap2rdf" level="DEBUG">
 			<AppenderRef ref="Console" />
 		</Logger>
-        <Logger name="iox.emf2rdf" level="TRACE" additivity="false">
+        <Logger name="iox.emf2rdf" level="OFF" additivity="false">
             <AppenderRef ref="Console" />
         </Logger>
         <Logger name="iox.sds4emf" level="OFF">
