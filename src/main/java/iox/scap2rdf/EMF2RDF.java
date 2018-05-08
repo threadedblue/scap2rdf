@@ -51,7 +51,6 @@ public class EMF2RDF implements Runnable {
 	SimpleValueFactory factory = SimpleValueFactory.getInstance();
 	Extensions extensions = new Extensions();
 	
-	@SuppressWarnings("unchecked")
 	@Override
 	public void run() {
 		
